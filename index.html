@@ -326,6 +326,14 @@
   .loc-status{font-size:12.5px;color:var(--muted);margin:8px auto 0;max-width:34ch;line-height:1.7;text-align:center}
   .loc-status[hidden]{display:none}
   .loc-status.done{color:var(--leaf);font-weight:700}
+  .loc-modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(43,34,25,.5)}
+  .loc-modal[hidden]{display:none}
+  .loc-modal-card{background:#fff;border-radius:20px;max-width:340px;width:100%;padding:22px 20px;text-align:center;box-shadow:var(--shadow);border:1px solid var(--line)}
+  .loc-modal-title{font-size:17px;font-weight:850;margin:0 0 8px}
+  .loc-modal-text{font-size:14px;color:var(--muted);line-height:1.7;margin:0 0 16px}
+  .loc-modal-btn{background:var(--ink);color:#fff;border:1.5px solid var(--ink);border-radius:14px;padding:12px;width:100%;font-family:inherit;font-size:14.5px;font-weight:800;cursor:pointer;touch-action:manipulation;min-height:48px}
+  .loc-modal-btn:active{transform:scale(.98)}
+  .loc-modal-retry{background:#fff;color:var(--brand-deep);border:0;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer;padding:12px;min-height:44px;margin-top:4px;text-decoration:underline}
   .mini-btn{
     flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
     border-radius:12px;padding:10px 8px;font-size:13.5px;font-weight:800;
@@ -639,6 +647,15 @@
   </footer>
 </div>
 
+<div class="loc-modal" id="locModal" hidden>
+  <div class="loc-modal-card" role="dialog" aria-modal="true" aria-labelledby="locModalTitle">
+    <p class="loc-modal-title" id="locModalTitle" data-i18n="locModalTitle">Enable location</p>
+    <p class="loc-modal-text" data-i18n="locModalText">Please enable your location to sort branches by nearest.</p>
+    <button class="loc-modal-btn" id="locModalRetry" type="button"><span data-i18n="locModalRetry">Try again</span></button>
+    <button class="loc-modal-retry" id="locModalOk" type="button"><span data-i18n="locModalOk">Not now</span></button>
+  </div>
+</div>
+
 <script>
 (function(){
   var strings = {
@@ -665,7 +682,10 @@
       ziggyBranch2:"Ziggy — Palm", ziggyBranch2Sub:"Palm Hills",
       visitSite:"Website", mapBtn:"Map", callBtn:"Call", openMaps:"Open in Google Maps",
       useLocation:"Use location to sort by nearest",
-      locating:"Locating you…", sortedByNearest:"Sorted by nearest to you"
+      locating:"Locating you…", sortedByNearest:"Sorted by nearest to you",
+      locModalTitle:"Enable location",
+      locModalText:"Please enable your location to sort branches by nearest.",
+      locModalRetry:"Try again", locModalOk:"Not now"
     },
     ar: {
       tagline:"Do you care? We do.", friends:"friends",
@@ -690,7 +710,10 @@
       ziggyBranch2:"زيجي — بالم", ziggyBranch2Sub:"بالم هيلز",
       visitSite:"الموقع", mapBtn:"الخريطة", callBtn:"اتصال", openMaps:"فتح في خرائط جوجل",
       useLocation:"استخدم الموقع لترتيب الأقرب أولًا",
-      locating:"جارٍ تحديد موقعك…", sortedByNearest:"مرتبة حسب الأقرب إليك"
+      locating:"جارٍ تحديد موقعك…", sortedByNearest:"مرتبة حسب الأقرب إليك",
+      locModalTitle:"فعّل الموقع",
+      locModalText:"من فضلك فعّل الموقع لترتيب الفروع حسب الأقرب.",
+      locModalRetry:"حاول مجددًا", locModalOk:"ليس الآن"
     }
   };
   var lang = "en";
@@ -766,6 +789,7 @@
       else io.observe(el);
     });
     window.scrollTo({top:0, behavior:"smooth"});
+    if(!isCard) requestLocation();
     setTimeout(updateStickyHeader, 50);
     setTimeout(updateStickyHeader, 600);
   }
@@ -817,35 +841,67 @@
     setStatus(strings[lang].sortedByNearest, true);
   }
   var locBtn = document.getElementById("locBtn");
+  var locModal = document.getElementById("locModal");
+  function showLocModal(){
+    if(!locModal || locState.done) return;
+    locModal.hidden = false;
+  }
+  function hideLocModal(){
+    if(locModal) locModal.hidden = true;
+  }
+  var locModalOk = document.getElementById("locModalOk");
+  if(locModalOk) locModalOk.addEventListener("click", function(){ hideLocModal(); });
+  var locModalRetry = document.getElementById("locModalRetry");
+  if(locModalRetry) locModalRetry.addEventListener("click", function(){ hideLocModal(); requestLocation(true); });
+  if(locModal) locModal.addEventListener("click", function(ev){ if(ev.target === locModal) hideLocModal(); });
+  function requestLocation(fromRetry){
+    var btn = document.getElementById("locBtn");
+    if(locState.done || locState.busy) return;
+    if(!("geolocation" in navigator) || !navigator.geolocation){
+      if(btn) btn.hidden = true;
+      showLocModal();
+      return;
+    }
+    locState.busy = true;
+    if(btn) btn.disabled = true;
+    setStatus(strings[lang].locating, false);
+    try{
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          locState.busy = false;
+          if(btn) btn.disabled = false;
+          hideLocModal();
+          sortBranches(pos.coords.latitude, pos.coords.longitude);
+        },
+        function(err){
+          // code 1 = denied / location OFF, code 2 = unavailable, code 3 = timeout
+          // iPhone with Location Services OFF always lands here — iOS blocks its own popup
+          locState.busy = false;
+          if(btn) btn.disabled = false;
+          setStatus("", false);
+          // only popup if user explicitly retried, or if this was an auto-ask that failed
+          // due to denied/off — this is how we tell the user to enable location
+          if(err && (err.code === 1 || err.code === 2)){
+            showLocModal();
+          } else if(!fromRetry){
+            showLocModal();
+          }
+        },
+        {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+      );
+    }catch(e){
+      locState.busy = false;
+      if(btn) btn.disabled = false;
+      setStatus("", false);
+      showLocModal();
+    }
+  }
   if(locBtn){
     if(!("geolocation" in navigator) || !navigator.geolocation){
       locBtn.hidden = true;
     } else {
       locBtn.addEventListener("click", function(){
-        if(locState.busy) return;
-        locState.busy = true;
-        locBtn.disabled = true;
-        setStatus(strings[lang].locating, false);
-        try{
-          navigator.geolocation.getCurrentPosition(
-            function(pos){
-              locState.busy = false;
-              locBtn.disabled = false;
-              sortBranches(pos.coords.latitude, pos.coords.longitude);
-            },
-            function(){
-              // denied / failed: just re-enable so user can tap again
-              locState.busy = false;
-              locBtn.disabled = false;
-              setStatus("", false);
-            },
-            {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
-          );
-        }catch(e){
-          locState.busy = false;
-          locBtn.disabled = false;
-          setStatus("", false);
-        }
+        requestLocation();
       });
     }
   }
