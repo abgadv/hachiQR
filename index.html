@@ -59,8 +59,26 @@
   /* top orange rule */
   .topline{height:6px;background:var(--brand)}
   .topbar{
-    display:flex;align-items:center;justify-content:flex-end;
+    display:flex;align-items:center;justify-content:space-between;
     padding:14px 18px 0;
+  }
+  .top-mini-logo{
+    width:0;height:34px;object-fit:contain;flex:none;
+    opacity:0;transform:translateX(-12px) scale(.8);
+    transition:width .35s ease, opacity .3s ease, transform .35s ease;
+    pointer-events:none;
+  }
+  html[dir="rtl"] .top-mini-logo{transform:translateX(12px) scale(.8)}
+  .topbar.is-sticky{
+    position:fixed;top:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:430px;z-index:60;
+    background:rgba(255,255,255,.97);
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+    padding:10px 18px;border-top:6px solid var(--brand);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar.is-sticky .top-mini-logo{
+    width:108px;opacity:1;transform:none;pointer-events:auto;
   }
   .lang-toggle{
     border:1.5px solid var(--line);
@@ -173,13 +191,12 @@
   html[dir="rtl"] .section-title{letter-spacing:0}
   .socials{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px}
   .soc{
-    display:flex;align-items:center;gap:10px;
-    border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;
-    text-decoration:none;color:var(--ink);font-weight:750;font-size:14px;background:#fff;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    border:1.5px solid var(--ink);border-radius:16px;padding:14px;
+    text-decoration:none;color:var(--ink);font-weight:800;font-size:14px;background:#fff;
     transition:transform .18s ease;
   }
   .soc:active{transform:scale(.97)}
-  .soc span{flex:1}
   /* bottom tools */
   .tools{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 18px 6px}
   .btn{
@@ -244,6 +261,13 @@
   }
   .dist-banner .dtxt{flex:1;min-width:0;display:flex;align-items:center}
   .dist-banner .dname{font-size:16.5px;font-weight:850}
+  .web-link{
+    width:38px;height:38px;border-radius:50%;flex:none;
+    display:flex;align-items:center;justify-content:center;
+    background:#fff;border:1.5px solid var(--line);color:var(--brand);
+    text-decoration:none;transition:transform .18s ease;
+  }
+  .web-link:active{transform:scale(.94)}
   .dist-links{display:flex;gap:8px;padding:12px 14px 4px;flex-wrap:wrap}
   .chip{
     display:inline-flex;align-items:center;gap:7px;
@@ -312,18 +336,21 @@
   .divider svg{animation:pawfloat 3.2s ease-in-out infinite}
   @media(prefers-reduced-motion:reduce){
     .reveal,.action,.logo-wrap{animation:none!important;transition:none!important;opacity:1!important;transform:none!important}
+    .top-mini-logo{transition:none!important}
   }
 </style>
 </head>
 <body>
 <div class="page">
   <div class="topline"></div>
-  <div class="topbar">
+  <div class="topbar" id="topbar">
+    <img class="top-mini-logo" src="logo.png" alt="Hachiko Friends" />
     <div class="lang-toggle" role="group" aria-label="Language">
       <button id="btnEN" class="active" type="button">EN</button>
       <button id="btnAR" type="button">عربي</button>
     </div>
   </div>
+  <div id="topbarSpacer" style="display:none"></div>
 
   <header class="hero">
     <div class="logo-wrap"><img src="logo.png" alt="Hachiko Friends logo" /></div>
@@ -336,11 +363,11 @@
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button class="tab active" id="tabBtnCard" role="tab" aria-selected="true" aria-controls="panelCard" type="button">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-      <span data-i18n="tabCard">Card</span>
+      <span data-i18n="tabCard">Contact Us</span>
     </button>
     <button class="tab" id="tabBtnDist" role="tab" aria-selected="false" aria-controls="panelDist" type="button">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span data-i18n="tabDist">Distributors</span>
+      <span data-i18n="tabDist">Our Partners</span>
     </button>
   </nav>
 
@@ -409,15 +436,8 @@
           <div class="dtxt">
             <div class="dname" data-i18n="zimaName">Zima Pets Center</div>
           </div>
-        </div>
-        <div class="dist-links">
-          <a class="chip" href="https://zimapets.com/" target="_blank" rel="noopener">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E67E17" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <span data-i18n="visitSite">Website</span>
-          </a>
-          <a class="chip solid" href="tel:+201007223289">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="#fff"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-            <span dir="ltr" style="direction:ltr;unicode-bidi:embed">0100 722 3289</span>
+          <a class="web-link" href="https://zimapets.com/" target="_blank" rel="noopener" aria-label="Website">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E67E17" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           </a>
         </div>
         <div class="branches">
@@ -537,18 +557,15 @@
           <div class="dtxt">
             <div class="dname" data-i18n="ziggyName">Ziggy Pupps</div>
           </div>
-        </div>
-        <div class="dist-links">
-          <a class="chip" href="http://ziggypupps.com/" target="_blank" rel="noopener">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E67E17" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <span data-i18n="visitSite">Website</span>
+          <a class="web-link" href="http://ziggypupps.com/" target="_blank" rel="noopener" aria-label="Website">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E67E17" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           </a>
         </div>
         <div class="branches">
           <div class="branch" data-lat="30.0596439" data-lng="30.9575851">
             <button class="bhead" type="button" aria-expanded="false" aria-label="View map">
               <span class="btext">
-                <span class="bname" data-i18n="ziggyBranch1">Ziggy Beverly</span>
+                <span class="bname" data-i18n="ziggyBranch1">Ziggy — Beverly</span>
                 <span class="bsub" data-i18n="ziggyBranch1Sub">Beverly Hills</span>
                 <span class="dist-badge" hidden></span>
               </span>
@@ -574,7 +591,7 @@
           <div class="branch" data-lat="30.0122614" data-lng="31.015105">
             <button class="bhead" type="button" aria-expanded="false" aria-label="View map">
               <span class="btext">
-                <span class="bname" data-i18n="ziggyBranch2">Ziggy Palm</span>
+                <span class="bname" data-i18n="ziggyBranch2">Ziggy — Palm</span>
                 <span class="bsub" data-i18n="ziggyBranch2Sub">Palm Hills</span>
                 <span class="dist-badge" hidden></span>
               </span>
@@ -623,7 +640,7 @@
       note:"Tap any button to call, chat or shop. We deliver all over Great Cairo.",
       rights:"All rights reserved.",
       saved:"Contact downloaded", shareTitle:"Hachiko Friends — Digital Card", copied:"Link copied",
-      tabCard:"Card", tabDist:"Distributors",
+      tabCard:"Contact Us", tabDist:"Our Partners",
       distTitle:"Find Hachiko near you",
       distSub:"Tap the arrow on any branch to view its map in the page, or use Map for directions.",
       zimaName:"Zima Pets Center",
@@ -632,8 +649,8 @@
       zimaBranch3:"Zima Rehab 2 — East Souq", zimaBranch3Sub:"Rehab City, East Souq",
       zimaBranch4:"Zima North Coast — Sahel Branch", zimaBranch4Sub:"Sahel Branch",
       ziggyName:"Ziggy Pupps",
-      ziggyBranch1:"Ziggy Beverly", ziggyBranch1Sub:"Beverly Hills",
-      ziggyBranch2:"Ziggy Palm", ziggyBranch2Sub:"Palm Hills",
+      ziggyBranch1:"Ziggy — Beverly", ziggyBranch1Sub:"Beverly Hills",
+      ziggyBranch2:"Ziggy — Palm", ziggyBranch2Sub:"Palm Hills",
       visitSite:"Website", mapBtn:"Map", callBtn:"Call", openMaps:"Open in Google Maps",
       locating:"Locating you…", sortedByNearest:"Sorted by nearest to you",
       locDenied:"Use location to sort by nearest", locRetry:"Try again"
@@ -648,7 +665,7 @@
       note:"اضغط على أي زر للاتصال أو المحادثة أو التسوق. نوصل لجميع أنحاء القاهرة الكبرى.",
       rights:"جميع الحقوق محفوظة.",
       saved:"تم تحميل جهة الاتصال", shareTitle:"هاتشيكو فريندز — الكارت الرقمي", copied:"تم نسخ الرابط",
-      tabCard:"الكارت", tabDist:"الموزعون",
+      tabCard:"تواصل معنا", tabDist:"شركاؤنا",
       distTitle:"اعثر على هاتشيكو بالقرب منك",
       distSub:"اضغط على السهم في أي فرع لعرض خريطته داخل الصفحة، أو استخدم زر الخريطة للاتجاهات.",
       zimaName:"زيما بيتس سنتر",
@@ -657,8 +674,8 @@
       zimaBranch3:"زيما الرحاب 2 — السوق الشرقي", zimaBranch3Sub:"مدينة الرحاب، السوق الشرقي",
       zimaBranch4:"زيما الساحل الشمالي", zimaBranch4Sub:"فرع الساحل",
       ziggyName:"زيجي",
-      ziggyBranch1:"زيجي بيفرلي", ziggyBranch1Sub:"بيفرلي هيلز",
-      ziggyBranch2:"زيجي بالم", ziggyBranch2Sub:"بالم هيلز",
+      ziggyBranch1:"زيجي — بيفرلي", ziggyBranch1Sub:"بيفرلي هيلز",
+      ziggyBranch2:"زيجي — بالم", ziggyBranch2Sub:"بالم هيلز",
       visitSite:"الموقع", mapBtn:"الخريطة", callBtn:"اتصال", openMaps:"فتح في خرائط جوجل",
       locating:"جارٍ تحديد موقعك…", sortedByNearest:"مرتبة حسب الأقرب إليك",
       locDenied:"استخدم الموقع لترتيب الأقرب أولًا", locRetry:"حاول مجددًا"
@@ -703,8 +720,28 @@
   var tabDist = document.getElementById("tabBtnDist");
   var panelCard = document.getElementById("panelCard");
   var panelDist = document.getElementById("panelDist");
+  var topbar = document.getElementById("topbar");
+  var topbarSpacer = document.getElementById("topbarSpacer");
+  var isDistTab = false;
+  function updateStickyHeader(){
+    if(!topbar) return;
+    var shouldStick = isDistTab && window.scrollY > 140;
+    if(shouldStick && !topbar.classList.contains("is-sticky")){
+      topbarSpacer.style.display = "block";
+      topbarSpacer.style.height = topbar.offsetHeight + "px";
+      topbar.classList.add("is-sticky");
+    } else if(!shouldStick && topbar.classList.contains("is-sticky")){
+      topbar.classList.remove("is-sticky");
+      topbarSpacer.style.display = "none";
+    } else if(shouldStick && topbar.classList.contains("is-sticky")){
+      topbarSpacer.style.height = topbar.offsetHeight + "px";
+    }
+  }
+  window.addEventListener("scroll", updateStickyHeader, {passive:true});
+  window.addEventListener("resize", updateStickyHeader);
   function showTab(which){
     var isCard = which === "card";
+    isDistTab = !isCard;
     tabCard.classList.toggle("active", isCard);
     tabDist.classList.toggle("active", !isCard);
     tabCard.setAttribute("aria-selected", isCard ? "true" : "false");
@@ -720,6 +757,8 @@
     });
     window.scrollTo({top:0, behavior:"smooth"});
     if(!isCard) locateUser(false);
+    setTimeout(updateStickyHeader, 50);
+    setTimeout(updateStickyHeader, 600);
   }
   tabCard.addEventListener("click", function(){ showTab("card"); });
   tabDist.addEventListener("click", function(){ showTab("dist"); });
