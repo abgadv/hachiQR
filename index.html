@@ -312,11 +312,20 @@
     padding:2px 9px;margin-top:6px;
   }
   .dist-badge[hidden]{display:none}
+  .loc-btn{
+    border:1.5px solid var(--line);background:#fff;font-family:inherit;
+    font-size:12.5px;font-weight:800;color:var(--brand-deep);cursor:pointer;
+    padding:10px 16px;min-height:44px;border-radius:999px;display:inline-block;
+    touch-action:manipulation;white-space:nowrap;max-width:100%;
+    margin:12px auto 0;
+    -webkit-appearance:none;appearance:none;
+  }
+  .loc-btn:active{transform:scale(.97)}
+  .loc-btn[hidden]{display:none}
+  .loc-btn:disabled{opacity:.6}
   .loc-status{font-size:12.5px;color:var(--muted);margin:8px auto 0;max-width:34ch;line-height:1.7;text-align:center}
   .loc-status[hidden]{display:none}
   .loc-status.done{color:var(--leaf);font-weight:700}
-  .link-btn{border:0;background:none;color:var(--brand-deep);font-weight:800;font-size:12.5px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:12px 16px;min-height:44px;display:inline-block;touch-action:manipulation}
-  .hint-btn{border:1.5px solid var(--line);background:#fff;font-family:inherit;font-size:12.5px;font-weight:800;color:var(--brand-deep);cursor:pointer;padding:10px 16px;min-height:44px;border-radius:999px;display:inline-block;touch-action:manipulation;white-space:nowrap;max-width:100%}
   .mini-btn{
     flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;
     border-radius:12px;padding:10px 8px;font-size:13.5px;font-weight:800;
@@ -425,6 +434,9 @@
     <div class="dist-head">
       <h2 data-i18n="distTitle">Find Hachiko near you</h2>
       <p data-i18n="distSub">Tap the arrow on any branch to view its map in the page, or use Map for directions.</p>
+      <button class="loc-btn" id="locBtn" type="button">
+        <span data-i18n="useLocation">Use location to sort by nearest</span>
+      </button>
       <p class="loc-status" id="locStatus" aria-live="polite" hidden></p>
     </div>
 
@@ -652,8 +664,8 @@
       ziggyBranch1:"Ziggy — Beverly", ziggyBranch1Sub:"Beverly Hills",
       ziggyBranch2:"Ziggy — Palm", ziggyBranch2Sub:"Palm Hills",
       visitSite:"Website", mapBtn:"Map", callBtn:"Call", openMaps:"Open in Google Maps",
-      locating:"Locating you…", sortedByNearest:"Sorted by nearest to you",
-      locDenied:"Use location to sort by nearest", locRetry:"Try again"
+      useLocation:"Use location to sort by nearest",
+      locating:"Locating you…", sortedByNearest:"Sorted by nearest to you"
     },
     ar: {
       tagline:"Do you care? We do.", friends:"friends",
@@ -677,8 +689,8 @@
       ziggyBranch1:"زيجي — بيفرلي", ziggyBranch1Sub:"بيفرلي هيلز",
       ziggyBranch2:"زيجي — بالم", ziggyBranch2Sub:"بالم هيلز",
       visitSite:"الموقع", mapBtn:"الخريطة", callBtn:"اتصال", openMaps:"فتح في خرائط جوجل",
-      locating:"جارٍ تحديد موقعك…", sortedByNearest:"مرتبة حسب الأقرب إليك",
-      locDenied:"استخدم الموقع لترتيب الأقرب أولًا", locRetry:"حاول مجددًا"
+      useLocation:"استخدم الموقع لترتيب الأقرب أولًا",
+      locating:"جارٍ تحديد موقعك…", sortedByNearest:"مرتبة حسب الأقرب إليك"
     }
   };
   var lang = "en";
@@ -696,14 +708,12 @@
       if(strings[l][k]) el.textContent = strings[l][k];
     });
     // re-render GPS distances + status in the new language
-    if(locState.mode === "sorted"){
+    if(locState.done){
       document.querySelectorAll("#panelDist .branch").forEach(function(card){
         var badge = card.querySelector(".dist-badge");
         if(badge && isFinite(card._dist)){ badge.textContent = fmtDist(card._dist); badge.hidden = false; }
       });
-      setStatus(strings[l].sortedByNearest, "done", false);
-    } else if(locState.mode === "denied"){
-      setStatus(strings[l].locDenied, "", "hint");
+      setStatus(strings[l].sortedByNearest, true);
     }
     document.title = l==="ar" ? "هاتشيكو فريندز — الكارت الرقمي" : "Hachiko Friends — Digital Card";
   }
@@ -756,7 +766,6 @@
       else io.observe(el);
     });
     window.scrollTo({top:0, behavior:"smooth"});
-    if(!isCard) locateUser(false);
     setTimeout(updateStickyHeader, 50);
     setTimeout(updateStickyHeader, 600);
   }
@@ -765,8 +774,8 @@
 
   document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
 
-  // nearest-first: GPS sorts branches inside each group by distance
-  var locState = {done:false, pending:false, mode:null, lat:0, lng:0};
+  // one-tap location: click button -> iOS permission prompt -> sort nearest first
+  var locState = {done:false, busy:false};
   function havKm(a,b,c,d){
     var R=6371, t=Math.PI/180;
     var h=Math.pow(Math.sin((c-a)*t/2),2)+Math.cos(a*t)*Math.cos(c*t)*Math.pow(Math.sin((d-b)*t/2),2);
@@ -780,40 +789,15 @@
     var d = Math.round(km*10)/10;
     return lang === "ar" ? "على بعد " + d + " كم" : d + " km away";
   }
-  function setStatus(msg, cls, retry){
+  function setStatus(msg, done){
     var st = document.getElementById("locStatus");
     if(!st) return;
+    if(!msg){ st.hidden = true; st.textContent = ""; return; }
     st.hidden = false;
-    st.className = "loc-status" + (cls ? " " + cls : "");
-    st.textContent = "";
-    if(retry === "hint"){
-      // pill button — tapping retries location (44px target for iPhone)
-      var h = document.createElement("button");
-      h.type = "button"; h.className = "hint-btn";
-      h.textContent = msg;
-      var retryTap = function(ev){
-        if(ev) ev.preventDefault();
-        if(locState.pending) return;
-        locateUser(true);
-      };
-      h.addEventListener("click", retryTap);
-      h.addEventListener("touchend", retryTap, {passive:false});
-      st.appendChild(h);
-      return;
-    }
-    st.appendChild(document.createTextNode(msg + " "));
-    if(retry){
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "link-btn";
-      b.textContent = strings[lang].locRetry;
-      var retryTap2 = function(ev){ if(ev) ev.preventDefault(); if(!locState.pending) locateUser(true); };
-      b.addEventListener("click", retryTap2);
-      b.addEventListener("touchend", retryTap2, {passive:false});
-      st.appendChild(b);
-    }
+    st.className = "loc-status" + (done ? " done" : "");
+    st.textContent = msg;
   }
   function sortBranches(lat, lng){
-    locState.lat = lat; locState.lng = lng;
     document.querySelectorAll("#panelDist .branches").forEach(function(box){
       var cards = [].slice.call(box.querySelectorAll(".branch"));
       cards.forEach(function(card){
@@ -827,45 +811,43 @@
         if(badge && isFinite(card._dist)){ badge.textContent = fmtDist(card._dist); badge.hidden = false; }
       });
     });
-    locState.done = true; locState.mode = "sorted";
-    setStatus(strings[lang].sortedByNearest, "done", false);
+    locState.done = true;
+    var btn = document.getElementById("locBtn");
+    if(btn) btn.hidden = true;
+    setStatus(strings[lang].sortedByNearest, true);
   }
-  function tryGeo(high, ms, ok, fail){
-    try{
-      navigator.geolocation.getCurrentPosition(ok, fail, {enableHighAccuracy:high, timeout:ms, maximumAge:600000});
-    }catch(e){ fail({code:0}, true); }
-  }
-  function locateUser(force){
-    if(locState.done || locState.pending) return;
-    if(!force && locState.mode === "denied") return;
+  var locBtn = document.getElementById("locBtn");
+  if(locBtn){
     if(!("geolocation" in navigator) || !navigator.geolocation){
-      locState.mode = "denied";
-      setStatus(strings[lang].locDenied, "", "hint");
-      return;
+      locBtn.hidden = true;
+    } else {
+      locBtn.addEventListener("click", function(){
+        if(locState.busy) return;
+        locState.busy = true;
+        locBtn.disabled = true;
+        setStatus(strings[lang].locating, false);
+        try{
+          navigator.geolocation.getCurrentPosition(
+            function(pos){
+              locState.busy = false;
+              locBtn.disabled = false;
+              sortBranches(pos.coords.latitude, pos.coords.longitude);
+            },
+            function(){
+              // denied / failed: just re-enable so user can tap again
+              locState.busy = false;
+              locBtn.disabled = false;
+              setStatus("", false);
+            },
+            {enableHighAccuracy:false, timeout:10000, maximumAge:60000}
+          );
+        }catch(e){
+          locState.busy = false;
+          locBtn.disabled = false;
+          setStatus("", false);
+        }
+      });
     }
-    locState.pending = true;
-    locState.seq = (locState.seq || 0) + 1;
-    var mySeq = locState.seq;
-    setStatus(strings[lang].locating, "", false);
-    var settled = false;
-    var onOk = function(pos){
-      if(settled || mySeq !== locState.seq) return; settled = true;
-      locState.pending = false;
-      sortBranches(pos.coords.latitude, pos.coords.longitude);
-    };
-    var onFail = function(err, last){
-      if(settled || mySeq !== locState.seq) return;
-      // mobile GPS often times out on high accuracy — retry once with low accuracy
-      if(!last && err && err.code === 3){
-        tryGeo(false, 25000, onOk, function(err2){ onFail(err2, true); });
-        return;
-      }
-      settled = true;
-      locState.pending = false;
-      locState.mode = "denied";
-      setStatus(strings[lang].locDenied, "", "hint");
-    };
-    tryGeo(true, 12000, onOk, onFail);
   }
   // expandable branch maps — arrow toggles inline map, lazy-loads iframe once
   document.querySelectorAll(".branch").forEach(function(branch){
